@@ -45,3 +45,7 @@ target-version = "py312"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.pyrefly]
+search-path = ["."]
+
