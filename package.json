@@ -1,0 +1,27 @@
+{
+  "name": "feedbackpro",
+  "version": "1.0.0",
+  "description": "FeedbackPro: AI Hackathon Project Auditor & Feedback Agent",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "test:backend": "pytest -v backend/tests",
+    "test:security": "python scripts/security_check.py",
+    "seed": "python scripts/seed_demo.py",
+    "typecheck:frontend": "npm run build --prefix frontend"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "hackathon",
+    "ai-auditor",
+    "feedback-agent",
+    "security-audit",
+    "fastapi",
+    "react"
+  ],
+  "author": "FeedbackPro Team",
+  "license": "MIT"
+}

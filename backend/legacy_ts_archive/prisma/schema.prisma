@@ -1,0 +1,448 @@
+// FeedbackPro Prisma Schema
+// Production Target: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String         @map("password_hash")
+  name          String
+  role          String         @default("user")
+  emailVerified Boolean        @default(false) @map("email_verified")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  projects      Project[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id               String    @id @default(uuid())
+  tokenHash        String    @unique @map("token_hash")
+  userId           String    @map("user_id")
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  replacedByToken  String?   @map("replaced_by_token")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Project {
+  id                  String               @id @default(uuid())
+  userId              String               @map("user_id")
+  name                String
+  shortDescription    String               @map("short_description")
+  detailedDescription String?              @map("detailed_description")
+  problemStatement    String?              @map("problem_statement")
+  solution            String?
+  targetUsers         String?              @map("target_users")
+  category            String               @default("general")
+  eventName           String               @map("event_name")
+  eventOrganizer      String?              @map("event_organizer")
+  eventType           String?              @map("event_type")
+  eventDate           String?              @map("event_date")
+  eventDescription    String?              @map("event_description")
+  techFrontend        String?              @map("tech_frontend")
+  techBackend         String?              @map("tech_backend")
+  techDatabase        String?              @map("tech_database")
+  techAi              String?              @map("tech_ai")
+  techApis            String?              @map("tech_apis")
+  techHosting         String?              @map("tech_hosting")
+  techOther           String?              @map("tech_other")
+  feedbackGoal        String               @default("General Feedback") @map("feedback_goal")
+  authorizedAt        DateTime?            @map("authorized_at")
+  isActive            Boolean              @default(true) @map("is_active")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links               ProjectLink[]
+  auditJobs           AuditJob[]
+  auditRuns           AuditRun[]
+  auditFindings       AuditFinding[]
+  feedbackForms       FeedbackForm[]
+  feedbackThemes      FeedbackTheme[]
+  aiGenerations       AiGeneration[]
+  aiAnalyses          AiAnalysis[]
+  recommendations     Recommendation[]
+  campaigns           Campaign[]
+  auditLogs           AuditLog[]
+
+  @@index([userId])
+  @@index([eventName])
+  @@map("projects")
+}
+
+model ProjectLink {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  linkType  String   @map("link_type") // live_website, github, demo_video, docs, presentation
+  url       String
+  label     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_links")
+}
+
+model AuditJob {
+  id           String     @id @default(uuid())
+  projectId    String     @map("project_id")
+  targetUrl    String     @map("target_url")
+  status       String     @default("pending") // pending, processing, completed, failed
+  stage        String     @default("queued")
+  workerId     String?    @map("worker_id")
+  attempts     Int        @default(0)
+  maxAttempts  Int        @default(3) @map("max_attempts")
+  errorMessage String?    @map("error_message")
+  lockedAt     DateTime?  @map("locked_at")
+  startedAt    DateTime?  @map("started_at")
+  completedAt  DateTime?  @map("completed_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  auditRuns    AuditRun[]
+
+  @@index([status])
+  @@index([projectId])
+  @@map("audit_jobs")
+}
+
+model AuditRun {
+  id             String         @id @default(uuid())
+  projectId      String         @map("project_id")
+  jobId          String?        @map("job_id")
+  status         String         @default("running") // running, completed, failed, partial
+  stage          String         @default("validating_url")
+  targetUrl      String         @map("target_url")
+  overallScore   Int            @default(0) @map("overall_score")
+  technicalScore Int            @default(0) @map("technical_score")
+  securityScore  Int            @default(0) @map("security_score")
+  uxScore        Int            @default(0) @map("ux_score")
+  a11yScore      Int            @default(0) @map("a11y_score")
+  perfScore      Int            @default(0) @map("perf_score")
+  summary        String?
+  errorMessage   String?        @map("error_message")
+  disclaimer     String         @default("This automated audit performs limited, non-destructive checks. It is not a substitute for a professional penetration test or comprehensive security assessment.")
+  startedAt      DateTime       @default(now()) @map("started_at")
+  completedAt    DateTime?      @map("completed_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  job            AuditJob?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  findings       AuditFinding[]
+  aiAnalyses     AiAnalysis[]
+
+  @@index([projectId])
+  @@map("audit_runs")
+}
+
+model AuditFinding {
+  id             String          @id @default(uuid())
+  auditRunId     String          @map("audit_run_id")
+  projectId      String          @map("project_id")
+  title          String
+  category       String
+  severity       String          // critical, high, medium, low, info
+  confidence     String          // high, medium, low
+  verified       Boolean         @default(true)
+  description    String
+  evidence       String
+  affectedUrl    String          @map("affected_url")
+  recommendedFix String          @map("recommended_fix")
+  source         String          @default("scanner") // scanner, browser, ai
+  isResolved     Boolean         @default(false) @map("is_resolved")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  auditRun       AuditRun        @relation(fields: [auditRunId], references: [id], onDelete: Cascade)
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  evidences      AuditEvidence[]
+  recommendations Recommendation[]
+
+  @@index([auditRunId])
+  @@index([projectId])
+  @@index([severity])
+  @@map("audit_findings")
+}
+
+model AuditEvidence {
+  id             String       @id @default(uuid())
+  auditFindingId String       @map("audit_finding_id")
+  evidenceType   String       @map("evidence_type")
+  data           Json?
+  rawSnippet     String?      @map("raw_snippet")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  finding        AuditFinding @relation(fields: [auditFindingId], references: [id], onDelete: Cascade)
+
+  @@index([auditFindingId])
+  @@map("audit_evidence")
+}
+
+model FeedbackForm {
+  id             String            @id @default(uuid())
+  projectId      String            @map("project_id")
+  slug           String            @unique
+  title          String
+  description    String?
+  status         String            @default("draft") // draft, published, closed
+  allowAnonymous Boolean           @default(true) @map("allow_anonymous")
+  isActive       Boolean           @default(true) @map("is_active")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sections       FeedbackSection[]
+  questions      FeedbackQuestion[]
+  responses      FeedbackResponse[]
+  themes         FeedbackTheme[]
+  campaigns      Campaign[]
+
+  @@index([slug])
+  @@index([projectId])
+  @@map("feedback_forms")
+}
+
+model FeedbackSection {
+  id             String             @id @default(uuid())
+  feedbackFormId String             @map("feedback_form_id")
+  title          String
+  description    String?
+  sortOrder      Int                @default(0) @map("sort_order")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  form           FeedbackForm       @relation(fields: [feedbackFormId], references: [id], onDelete: Cascade)
+  questions      FeedbackQuestion[]
+
+  @@index([feedbackFormId])
+  @@map("feedback_sections")
+}
+
+model FeedbackQuestion {
+  id             String            @id @default(uuid())
+  feedbackFormId String            @map("feedback_form_id")
+  sectionId      String?           @map("section_id")
+  prompt         String
+  description    String?
+  questionType   String            @map("question_type") // rating, multiple_choice, checkbox, yes_no, likert, nps, short_text, long_text, emoji_rating
+  isRequired     Boolean           @default(false) @map("is_required")
+  sortOrder      Int               @default(0) @map("sort_order")
+  minLabel       String?           @map("min_label")
+  maxLabel       String?           @map("max_label")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  form           FeedbackForm      @relation(fields: [feedbackFormId], references: [id], onDelete: Cascade)
+  section        FeedbackSection?  @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  options        FeedbackOption[]
+  answers        ResponseAnswer[]
+
+  @@index([feedbackFormId])
+  @@map("feedback_questions")
+}
+
+model FeedbackOption {
+  id         String           @id @default(uuid())
+  questionId String           @map("question_id")
+  label      String
+  value      String
+  sortOrder  Int              @default(0) @map("sort_order")
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  question   FeedbackQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("feedback_options")
+}
+
+model FeedbackResponse {
+  id              String           @id @default(uuid())
+  feedbackFormId  String           @map("feedback_form_id")
+  respondentName  String?          @map("respondent_name")
+  respondentEmail String?          @map("respondent_email")
+  isAnonymous     Boolean          @default(true) @map("is_anonymous")
+  ipHash          String?          @map("ip_hash")
+  userAgent       String?          @map("user_agent")
+  submittedAt     DateTime         @default(now()) @map("submitted_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  form            FeedbackForm     @relation(fields: [feedbackFormId], references: [id], onDelete: Cascade)
+  answers         ResponseAnswer[]
+
+  @@index([feedbackFormId])
+  @@map("feedback_responses")
+}
+
+model ResponseAnswer {
+  id                 String           @id @default(uuid())
+  feedbackResponseId String           @map("feedback_response_id")
+  questionId         String           @map("question_id")
+  numericValue       Float?           @map("numeric_value")
+  textValue          String?          @map("text_value")
+  selectedOptions    Json?            @map("selected_options")
+  createdAt          DateTime         @default(now()) @map("created_at")
+
+  response           FeedbackResponse @relation(fields: [feedbackResponseId], references: [id], onDelete: Cascade)
+  question           FeedbackQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackResponseId])
+  @@index([questionId])
+  @@map("response_answers")
+}
+
+model FeedbackTheme {
+  id              String       @id @default(uuid())
+  projectId       String       @map("project_id")
+  feedbackFormId  String       @map("feedback_form_id")
+  themeTitle      String       @map("theme_title")
+  sentiment       String       // positive, negative, neutral
+  occurrenceCount Int          @default(1) @map("occurrence_count")
+  severity        String?      // high, medium, low
+  aiSummary       String       @map("ai_summary")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  project         Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  form            FeedbackForm @relation(fields: [feedbackFormId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("feedback_themes")
+}
+
+model AiGeneration {
+  id              String   @id @default(uuid())
+  projectId       String   @map("project_id")
+  generationType  String   @map("generation_type")
+  modelUsed       String   @map("model_used")
+  promptTokens    Int      @default(0) @map("prompt_tokens")
+  completionTokens Int     @default(0) @map("completion_tokens")
+  executionTimeMs Int      @default(0) @map("execution_time_ms")
+  rawOutput       Json?    @map("raw_output")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("ai_generations")
+}
+
+model AiAnalysis {
+  id                     String    @id @default(uuid())
+  projectId              String    @map("project_id")
+  auditRunId             String?   @map("audit_run_id")
+  executiveSummary       String    @map("executive_summary")
+  sentimentDistribution  Json      @map("sentiment_distribution")
+  positiveThemes         Json?     @map("positive_themes")
+  negativeThemes         Json?     @map("negative_themes")
+  featureRequests        Json?     @map("feature_requests")
+  commonComplaints       Json?     @map("common_complaints")
+  mostPraised            Json?     @map("most_praised")
+  userSatisfactionScore  Int       @default(0) @map("user_satisfaction_score")
+  sampleSize             Int       @default(0) @map("sample_size")
+  isSampleSizeLimited    Boolean   @default(false) @map("is_sample_size_limited")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  project                Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  auditRun               AuditRun? @relation(fields: [auditRunId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@map("ai_analysis")
+}
+
+model Recommendation {
+  id                     String        @id @default(uuid())
+  projectId              String        @map("project_id")
+  auditFindingId         String?       @map("audit_finding_id")
+  priority               String        // P0, P1, P2, P3
+  title                  String
+  problemStatement       String        @map("problem_statement")
+  whyItMatters           String        @map("why_it_matters")
+  remediationSteps       Json          @map("remediation_steps")
+  rationale              String
+  correlatedFeedbackCount Int          @default(0) @map("correlated_feedback_count")
+  easeOfFixing           String        @default("Medium") @map("ease_of_fixing")
+  createdAt              DateTime      @default(now()) @map("created_at")
+  updatedAt              DateTime      @updatedAt @map("updated_at")
+
+  project                Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  auditFinding           AuditFinding? @relation(fields: [auditFindingId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([priority])
+  @@map("recommendations")
+}
+
+model Campaign {
+  id              String              @id @default(uuid())
+  projectId       String              @map("project_id")
+  feedbackFormId  String              @map("feedback_form_id")
+  name            String
+  subject         String
+  messageTemplate String              @map("message_template")
+  sentAt          DateTime?           @map("sent_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  project         Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  form            FeedbackForm        @relation(fields: [feedbackFormId], references: [id], onDelete: Cascade)
+  recipients      CampaignRecipient[]
+
+  @@index([projectId])
+  @@map("campaigns")
+}
+
+model CampaignRecipient {
+  id           String    @id @default(uuid())
+  campaignId   String    @map("campaign_id")
+  email        String
+  status       String    @default("pending") // pending, sent, failed
+  errorMessage String?   @map("error_message")
+  sentAt       DateTime? @map("sent_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  campaign     Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("campaign_recipients")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  projectId String?  @map("project_id")
+  eventType String   @map("event_type")
+  details   Json?
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@map("audit_logs")
+}

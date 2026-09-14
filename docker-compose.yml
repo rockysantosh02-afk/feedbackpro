@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: feedbackpro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: feedbackpro
+      POSTGRES_USER: feedbackpro_user
+      POSTGRES_PASSWORD: feedbackpro_secure_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U feedbackpro_user -d feedbackpro"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: feedbackpro-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: feedbackpro-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://feedbackpro_user:feedbackpro_secure_dev_password@postgres:5432/feedbackpro
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=development_docker_jwt_secret_min_32_chars_long
+      - FRONTEND_URL=http://localhost:5173
+      - AI_PROVIDER=deterministic
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: feedbackpro-worker
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://feedbackpro_user:feedbackpro_secure_dev_password@postgres:5432/feedbackpro
+      - REDIS_URL=redis://redis:6379/0
+      - AI_PROVIDER=deterministic
+    command: ["python", "-m", "app.workers.audit_worker"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: feedbackpro-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api
+
+volumes:
+  pgdata:
+  redisdata:

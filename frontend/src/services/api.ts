@@ -1,0 +1,61 @@
+/**
+ * Core API Client with automatic JWT Bearer authentication.
+ */
+
+const envUrl = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL as string | undefined) || '';
+const API_BASE = envUrl ? (envUrl.endsWith('/api') ? envUrl.replace(/\/+$/, '') : `${envUrl.replace(/\/+$/, '')}/api`) : '/api';
+
+export class ApiError extends Error {
+  status: number;
+  data: any;
+
+  constructor(status: number, data: any) {
+    super(data?.detail || 'API request failed');
+    this.status = status;
+    this.data = data;
+  }
+}
+
+export async function request<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = localStorage.getItem('access_token');
+  const headers = new Headers(options.headers || {});
+
+  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  const contentType = response.headers.get('content-type');
+  let data: any;
+  if (contentType && contentType.includes('application/json')) {
+    data = await response.json();
+  } else {
+    data = await response.text();
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      // Clear token on authorization failure
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    }
+    throw new ApiError(response.status, data);
+  }
+
+  return data as T;
+}

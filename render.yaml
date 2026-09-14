@@ -1,0 +1,75 @@
+services:
+  # 1. FastAPI Web API Service
+  - type: web
+    name: feedbackpro-api
+    runtime: python
+    rootDir: backend
+    plan: standard
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt && pip install .
+    preDeployCommand: python -m alembic upgrade head
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: feedbackpro-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AI_PROVIDER
+        value: deterministic # or openai / gemini
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://feedbackpro.onrender.com
+      - key: BACKEND_URL
+        value: https://feedbackpro-api.onrender.com
+
+  # 2. Dedicated Isolated Audit Worker
+  - type: worker
+    name: feedbackpro-audit-worker
+    runtime: python
+    rootDir: backend
+    plan: standard
+    buildCommand: pip install --upgrade pip && pip install . && playwright install chromium --with-deps
+    startCommand: python -m app.workers.audit_worker
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: feedbackpro-db
+          property: connectionString
+      - key: AI_PROVIDER
+        value: deterministic # or openai / gemini
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  # 3. React Frontend Static Site
+  - type: web
+    name: feedbackpro-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://feedbackpro-api.onrender.com/api
+
+databases:
+  # Managed PostgreSQL instance
+  - name: feedbackpro-db
+    plan: standard
+    postgresMajorVersion: 16
