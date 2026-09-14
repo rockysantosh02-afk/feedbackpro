@@ -7,6 +7,7 @@ from app.db.models.user import User
 from app.db.session import get_db
 from app.dependencies import get_current_user
 from app.schemas.auth import (
+    FirebaseSyncRequest,
     RefreshTokenRequest,
     TokenResponse,
     UserLoginRequest,
@@ -61,4 +62,18 @@ async def logout(
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.post("/firebase-sync", response_model=UserResponse)
+async def firebase_sync(
+    data: FirebaseSyncRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Syncs updated display name or profile metadata from Firebase to the PostgreSQL user record."""
+    if data.name and data.name.strip():
+        current_user.name = data.name.strip()
+        await db.commit()
+        await db.refresh(current_user)
     return current_user

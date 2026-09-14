@@ -8,7 +8,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    firebase_uid VARCHAR(128) UNIQUE,
+    password_hash VARCHAR(255),
     name VARCHAR(255) NOT NULL,
     role VARCHAR(50) DEFAULT 'user',
     email_verified BOOLEAN DEFAULT FALSE,
@@ -17,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_firebase_uid ON users(firebase_uid);
 
 -- 2. Refresh Tokens Table (Rotation & Revocation)
 CREATE TABLE IF NOT EXISTS refresh_tokens (

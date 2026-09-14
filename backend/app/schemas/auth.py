@@ -40,3 +40,7 @@ class UserResponse(BaseModel):
     name: str
     role: str
     email_verified: bool
+
+
+class FirebaseSyncRequest(BaseModel):
+    name: str | None = Field(None, max_length=100)

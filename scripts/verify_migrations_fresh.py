@@ -108,6 +108,7 @@ async def verify_schema_and_crud():
         index_names = [idx["name"] for idx in user_indexes]
         print(f"  [OK] User table indexes: {index_names}")
         assert any("email" in name for name in index_names), "Missing index on users.email"
+        assert any("firebase_uid" in name for name in index_names), "Missing index on users.firebase_uid"
 
         # Verify Foreign Keys on projects
         project_fks = await conn.run_sync(lambda sync_conn: inspect(sync_conn).get_foreign_keys("projects"))
@@ -120,15 +121,17 @@ async def verify_schema_and_crud():
         user_a = User(
             id=uuid.uuid4(),
             email="fresh_user_a@feedbackpro.ai",
-            password_hash=hash_password("ArgonPassword123!"),
+            firebase_uid="firebase_test_uid_12345",
+            password_hash=None,  # Firebase-managed auth does not require password_hash
             name="Fresh User A",
         )
         session.add(user_a)
         await session.commit()
         await session.refresh(user_a)
         user_a_id = user_a.id
-        print(f"  [OK] Created User A: {user_a_id} (created_at: {user_a.created_at})")
+        print(f"  [OK] Created User A with Firebase UID: {user_a_id} (created_at: {user_a.created_at})")
         assert user_a.created_at is not None, "Timestamp created_at failed"
+        assert user_a.firebase_uid == "firebase_test_uid_12345"
 
         # 2. Test Unique Constraint on email
         user_dup = User(
@@ -144,6 +147,21 @@ async def verify_schema_and_crud():
         except IntegrityError:
             await session.rollback()
             print("  [OK] Unique constraint on user email correctly enforced (raised IntegrityError).")
+
+        # 2b. Test Unique Constraint on firebase_uid
+        user_dup_fb = User(
+            id=uuid.uuid4(),
+            email="fresh_user_diff@feedbackpro.ai",
+            firebase_uid="firebase_test_uid_12345",  # Duplicate firebase_uid
+            name="Duplicate Firebase User",
+        )
+        session.add(user_dup_fb)
+        try:
+            await session.commit()
+            raise AssertionError("Duplicate firebase_uid constraint failed to trigger!")
+        except IntegrityError:
+            await session.rollback()
+            print("  [OK] Unique constraint on firebase_uid correctly enforced (raised IntegrityError).")
 
         # 3. Create Project with ownership
         project = Project(

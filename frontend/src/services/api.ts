@@ -16,11 +16,24 @@ export class ApiError extends Error {
   }
 }
 
+import { auth } from '../lib/firebase';
+
+export async function getAuthToken(): Promise<string | null> {
+  if (auth.currentUser) {
+    try {
+      return await auth.currentUser.getIdToken();
+    } catch {
+      // ignore and fallback
+    }
+  }
+  return localStorage.getItem('access_token');
+}
+
 export async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('access_token');
+  const token = await getAuthToken();
   const headers = new Headers(options.headers || {});
 
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {

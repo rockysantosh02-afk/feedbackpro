@@ -73,6 +73,9 @@ All configuration is strictly injected via environment variables. **No hardcoded
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifespan in minutes | `15` | No |
 | `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh token lifespan in days | `7` | No |
 | `CORS_ORIGINS` | Comma-separated list of allowed frontend origins | `https://feedbackpro.onrender.com` | **Yes** |
+| `FIREBASE_PROJECT_ID` | Firebase Project ID for server-side token verification | `feedbackpro-d2e02` | **Yes** |
+| `FIREBASE_AUTH_ENABLED` | Enable Firebase ID token verification | `true` | No |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Firebase service account credentials (JSON string or path) | Private server credential | Optional |
 | `AI_PROVIDER` | AI backend provider (`gemini`, `openai`, `mock`) | `gemini` or `mock` | No |
 | `AI_API_KEY` | Real provider API key (server-side only) | Provider secret key | If AI enabled |
 | `AI_MODEL` | Provider model identifier | `gemini-1.5-flash` or `gpt-4o` | No |
@@ -85,9 +88,35 @@ All configuration is strictly injected via environment variables. **No hardcoded
 
 | Variable | Description | Scope |
 | :--- | :--- | :--- |
-| `VITE_API_BASE_URL` | Base URL pointing to the deployed FastAPI service | Browser public |
+| `VITE_API_BASE_URL` / `VITE_API_URL` | Base URL pointing to deployed FastAPI service | Browser public |
+| `VITE_FIREBASE_API_KEY` | Firebase Web API Key (from Firebase Console) | Browser public |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase Auth Domain | Browser public |
+| `VITE_FIREBASE_PROJECT_ID` | Firebase Project ID | Browser public |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase Storage Bucket | Browser public |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase Cloud Messaging Sender ID | Browser public |
+| `VITE_FIREBASE_APP_ID` | Firebase Web Application ID | Browser public |
+| `VITE_FIREBASE_MEASUREMENT_ID` | Firebase Analytics Measurement ID | Browser public |
 
-> **Security Rule**: Never prefix backend database credentials or server keys with `VITE_`. Only public endpoints may be exposed in Vite environment variables.
+> **Security Rule**: Never prefix backend database credentials or server keys with `VITE_`. Only public web endpoints and public Firebase client identifiers may be exposed in Vite environment variables. Private service account keys must NEVER be exposed in the frontend.
+
+---
+
+## 3. Firebase Authentication Integration
+
+FeedbackPro uses Firebase Authentication as the primary identity provider while retaining PostgreSQL as the definitive source of truth for all domain entities, tenancy, and authorization.
+
+### Key Characteristics:
+1. **Public Web Config vs. Private Admin Credentials**:
+   - **Frontend (Public)**: Uses public Firebase Web client configuration injected via `VITE_FIREBASE_*`.
+   - **Backend (Private)**: Uses `firebase-admin` SDK with Google Cloud default credentials or `FIREBASE_SERVICE_ACCOUNT_JSON`.
+2. **Stable External Identity Mapping**:
+   - `firebase_uid`: Indexed unique column in PostgreSQL `users` table.
+   - Initial registration/login via Firebase sends the verified Firebase ID Token to the FastAPI backend.
+   - The backend resolves the user by `firebase_uid`. If an existing user matches by email, the `firebase_uid` is seamlessly linked. If new, the user profile is auto-provisioned in PostgreSQL.
+3. **Anti-IDOR Multi-Tenancy**:
+   - Authentication identity is derived exclusively from the verified token; client-supplied user IDs in request bodies or query parameters are ignored.
+   - Resource access checks strictly enforce `Project.user_id == current_user.id` against PostgreSQL.
+
 
 ---
 

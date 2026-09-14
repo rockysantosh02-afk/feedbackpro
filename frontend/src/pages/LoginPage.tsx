@@ -19,7 +19,16 @@ export const LoginPage: React.FC = () => {
       await authService.login({ email, password });
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password');
+      const code = err?.code || '';
+      if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+        setError('Invalid email address or password. Please check your credentials.');
+      } else if (code === 'auth/too-many-requests') {
+        setError('Access temporarily disabled due to too many failed attempts. Please try again later.');
+      } else if (code === 'auth/user-disabled') {
+        setError('This account has been disabled. Please contact support.');
+      } else {
+        setError(err?.message || 'Unable to sign in. Please verify your credentials.');
+      }
     } finally {
       setLoading(false);
     }

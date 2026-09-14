@@ -787,6 +787,12 @@ class LiveVerifier:
 
 
 def main():
+    if DB_PATH.exists():
+        try:
+            DB_PATH.unlink()
+        except Exception:
+            pass
+
     print("1. Starting Mock Target Server on port 8888...")
     mock_server = start_mock_target_server()
 

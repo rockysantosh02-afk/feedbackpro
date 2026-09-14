@@ -27,7 +27,16 @@ export const RegisterPage: React.FC = () => {
       await authService.login({ email, password });
       navigate('/wizard');
     } catch (err: any) {
-      setError(err.message || 'Registration failed.');
+      const code = err?.code || '';
+      if (code === 'auth/email-already-in-use') {
+        setError('An account with this email address already exists. Please sign in instead.');
+      } else if (code === 'auth/weak-password') {
+        setError('Password must be at least 8 characters long.');
+      } else if (code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else {
+        setError(err?.message || 'Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

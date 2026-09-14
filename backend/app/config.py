@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     IP_HASH_SALT: str = "feedbackpro_privacy_salt_2026"
 
+    # Firebase Authentication
+    FIREBASE_PROJECT_ID: str = "feedbackpro-d2e02"
+    FIREBASE_SERVICE_ACCOUNT_JSON: str | None = None
+    FIREBASE_AUTH_ENABLED: bool = True
+
     # Worker Queue
     QUEUE_TYPE: Literal["database", "redis"] = "database"
     REDIS_URL: str = "redis://localhost:6379/0"
