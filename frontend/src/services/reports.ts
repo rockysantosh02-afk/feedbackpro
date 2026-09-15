@@ -1,4 +1,4 @@
-import { request } from './api';
+import { request, API_BASE, getAuthToken } from './api';
 import { AuditFinding } from './audits';
 
 export interface Recommendation {
@@ -76,18 +76,19 @@ export const reportService = {
   },
 
   getExportUrl(projectId: string, format: 'json' | 'csv' | 'pdf'): string {
-    return `/api/v1/projects/${projectId}/report/export?format=${format}`;
+    return `${API_BASE}/projects/${projectId}/report/export?format=${format}`;
   },
 
   async downloadReport(projectId: string, format: 'json' | 'csv' | 'pdf'): Promise<void> {
-    const token = localStorage.getItem('access_token');
-    const res = await fetch(`/api/v1/projects/${projectId}/report/export?format=${format}`, {
+    const token = await getAuthToken();
+    const res = await fetch(`${API_BASE}/projects/${projectId}/report/export?format=${format}`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
     if (!res.ok) {
-      throw new Error(`Export failed: ${res.statusText}`);
+      const errText = await res.text().catch(() => res.statusText);
+      throw new Error(`Export failed (${res.status}): ${errText}`);
     }
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);

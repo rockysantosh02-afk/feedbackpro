@@ -65,22 +65,21 @@ alembic revision --autogenerate -m "add_new_audit_metric"
 
 ## 4. Container Health Checks & Orchestration
 
-The backend exposes a lightweight health check endpoint at `/api/v1/health` that verifies:
-* Database connection responsiveness
-* Async worker availability
-* Memory consumption
+The backend exposes lightweight health and readiness check endpoints at `/health` and `/health/ready`:
+* `/health` (Liveness): Fast process check indicating service health
+* `/health/ready` (Readiness): Verifies PostgreSQL database connection and migrations
 
-In Kubernetes or Docker Swarm, configure your liveness and readiness probes:
+In Kubernetes, Render, or Docker Swarm, configure your liveness and readiness probes:
 ```yaml
 livenessProbe:
   httpGet:
-    path: /api/v1/health
+    path: /health
     port: 8000
-  initialDelaySeconds: 15
-  periodSeconds: 20
+  initialDelaySeconds: 10
+  periodSeconds: 15
 readinessProbe:
   httpGet:
-    path: /api/v1/health
+    path: /health/ready
     port: 8000
   initialDelaySeconds: 5
   periodSeconds: 10

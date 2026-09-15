@@ -21,11 +21,14 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: ensure tables exist in dev/test SQLite databases
+    # Startup: ensure tables exist in dev/test SQLite databases; in production Alembic manages migrations
     logger.info(f"[FeedbackPro] Starting up in '{settings.ENVIRONMENT}' environment...")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("[FeedbackPro] Database models and tables verified.")
+    if settings.ENVIRONMENT != "production":
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("[FeedbackPro] Dev/Test database models and tables verified.")
+    else:
+        logger.info("[FeedbackPro] Production environment detected: schema managed via Alembic migrations.")
     yield
     # Shutdown
     logger.info("[FeedbackPro] Shutting down application engine...")

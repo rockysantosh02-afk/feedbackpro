@@ -121,11 +121,18 @@ class URLSafetyService:
 
         start_time = time.perf_counter()
 
+        from app.config import get_settings
+        settings = get_settings()
+        max_redirects = getattr(settings, "SCANNER_MAX_REDIRECTS", cls.MAX_REDIRECTS)
+        connect_timeout = getattr(settings, "SCANNER_CONNECT_TIMEOUT_SECONDS", cls.CONNECT_TIMEOUT_SECONDS)
+        read_timeout = getattr(settings, "SCANNER_READ_TIMEOUT_SECONDS", cls.READ_TIMEOUT_SECONDS)
+        max_bytes = getattr(settings, "SCANNER_MAX_RESPONSE_BYTES", cls.MAX_PAYLOAD_BYTES)
+
         timeout_config = httpx.Timeout(
-            connect=cls.CONNECT_TIMEOUT_SECONDS,
-            read=cls.READ_TIMEOUT_SECONDS,
-            write=cls.CONNECT_TIMEOUT_SECONDS,
-            pool=cls.CONNECT_TIMEOUT_SECONDS,
+            connect=connect_timeout,
+            read=read_timeout,
+            write=connect_timeout,
+            pool=connect_timeout,
         )
 
         async with httpx.AsyncClient(
@@ -134,7 +141,7 @@ class URLSafetyService:
             follow_redirects=False,
             headers={"User-Agent": cls.DEFAULT_USER_AGENT},
         ) as client:
-            for hop in range(cls.MAX_REDIRECTS + 1):
+            for hop in range(max_redirects + 1):
                 # Layer 1, 2, 3 validation on every hop
                 validation = cls.validate_url(current_url)
                 if not validation.is_safe:
@@ -145,7 +152,7 @@ class URLSafetyService:
                 all_resolved_ips.extend(validation.resolved_ips)
 
                 try:
-                    # Stream response to enforce 5 MB cap without loading huge files into RAM
+                    # Stream response to enforce payload cap without loading huge files into RAM
                     async with client.stream("GET", current_url) as response:
                         # Check for redirects
                         if response.status_code in (301, 302, 303, 307, 308):
@@ -154,23 +161,23 @@ class URLSafetyService:
                                 raise ValueError(f"HTTP {response.status_code} received without Location header")
 
                             redirect_chain.append(current_url)
-                            if hop >= cls.MAX_REDIRECTS:
-                                raise ValueError(f"Exceeded maximum allowed redirects ({cls.MAX_REDIRECTS})")
+                            if hop >= max_redirects:
+                                raise ValueError(f"Exceeded maximum allowed redirects ({max_redirects})")
 
                             # Resolve relative redirects
                             current_url = urljoin(current_url, location)
                             continue
 
-                        # Terminal non-redirect response: download body up to MAX_PAYLOAD_BYTES
+                        # Terminal non-redirect response: download body up to max_bytes
                         body_chunks: list[bytes] = []
                         total_bytes = 0
 
                         async for chunk in response.aiter_bytes():
                             body_chunks.append(chunk)
                             total_bytes += len(chunk)
-                            if total_bytes > cls.MAX_PAYLOAD_BYTES:
+                            if total_bytes > max_bytes:
                                 raise ValueError(
-                                    f"Response exceeded maximum payload limit of {cls.MAX_PAYLOAD_BYTES} bytes"
+                                    f"Response exceeded maximum payload limit of {max_bytes} bytes"
                                 )
 
                         elapsed_ms = int((time.perf_counter() - start_time) * 1000)

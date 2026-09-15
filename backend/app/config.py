@@ -4,6 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEFAULT_SQLITE_PATH = Path(__file__).resolve().parent.parent / "feedbackpro.db"
@@ -11,6 +12,12 @@ _DEFAULT_SQLITE_PATH = Path(__file__).resolve().parent.parent / "feedbackpro.db"
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @model_validator(mode="after")
+    def enforce_production_rules(self) -> "Settings":
+        if self.ENVIRONMENT == "production":
+            self.INLINE_AUDIT_EXECUTION = False
+        return self
 
     ENVIRONMENT: Literal["development", "staging", "production"] = "development"
     HOST: str = "0.0.0.0"
