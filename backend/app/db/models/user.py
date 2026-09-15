@@ -1,6 +1,6 @@
 """User and RefreshToken Database Models."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String
@@ -38,7 +38,7 @@ class RefreshToken(Base, UUIDPrimaryKeyMixin):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     replaced_by_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     user: Mapped["User"] = relationship("User", back_populates="refresh_tokens")

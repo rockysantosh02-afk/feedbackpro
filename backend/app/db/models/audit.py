@@ -1,6 +1,6 @@
 """Audit Pipeline Database Models (Jobs, Runs, Findings, Evidence)."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
@@ -63,7 +63,7 @@ class AuditRun(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         nullable=False,
     )
     started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -117,7 +117,7 @@ class AuditEvidence(Base, UUIDPrimaryKeyMixin):
     data: Mapped[dict | list | None] = mapped_column(JSON, nullable=True)
     raw_snippet: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     finding: Mapped["AuditFinding"] = relationship("AuditFinding", back_populates="evidence_items")

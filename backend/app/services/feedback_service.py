@@ -136,7 +136,10 @@ class FeedbackFormService:
                 selectinload(FeedbackForm.questions).selectinload(FeedbackQuestion.options),
             )
         )
-        return await db.scalar(stmt)
+        updated_form = await db.scalar(stmt)
+        if not updated_form:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback form not found.")
+        return updated_form
 
     @classmethod
     async def publish_form(cls, db: AsyncSession, project_id: uuid.UUID, user_id: uuid.UUID) -> FeedbackForm:
@@ -159,7 +162,10 @@ class FeedbackFormService:
                 selectinload(FeedbackForm.questions).selectinload(FeedbackQuestion.options),
             )
         )
-        return await db.scalar(stmt)
+        published_form = await db.scalar(stmt)
+        if not published_form:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback form not found.")
+        return published_form
 
     @classmethod
     async def unpublish_form(cls, db: AsyncSession, project_id: uuid.UUID, user_id: uuid.UUID) -> FeedbackForm:
@@ -175,7 +181,10 @@ class FeedbackFormService:
                 selectinload(FeedbackForm.questions).selectinload(FeedbackQuestion.options),
             )
         )
-        return await db.scalar(stmt)
+        unpublished_form = await db.scalar(stmt)
+        if not unpublished_form:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback form not found.")
+        return unpublished_form
 
     @classmethod
     async def get_form_by_slug(cls, db: AsyncSession, slug: str) -> FeedbackForm:

@@ -25,7 +25,10 @@ dependencies = [
     "reportlab>=4.2.0",
     "qrcode[pil]>=7.4.2",
     "python-multipart>=0.0.9",
-    "slowapi>=0.1.9"
+    "slowapi>=0.1.9",
+    "firebase-admin>=6.4.0",
+    "types-qrcode>=8.2.0",
+    "types-reportlab>=5.0.0"
 ]
 
 [project.optional-dependencies]
@@ -45,6 +48,10 @@ target-version = "py312"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
 
 [tool.pyrefly]
 search-path = ["."]

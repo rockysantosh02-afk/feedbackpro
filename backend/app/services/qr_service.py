@@ -4,6 +4,7 @@ import base64
 import io
 import qrcode
 from qrcode.constants import ERROR_CORRECT_M
+from qrcode.image.pil import PilImage
 
 from app.config import get_settings
 
@@ -24,11 +25,12 @@ class QRCodeService:
             error_correction=ERROR_CORRECT_M,
             box_size=10,
             border=2,
+            image_factory=PilImage,
         )
         qr.add_data(target_url)
         qr.make(fit=True)
 
-        img = qr.make_image(fill_color="#065F46", back_color="white") # Emerald QR
+        img = qr.make_image(fill_color="#065F46", back_color="white")  # Emerald QR
 
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")

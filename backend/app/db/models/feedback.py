@@ -1,6 +1,6 @@
 """Feedback System Models (Forms, Sections, Questions, Responses, Answers, Themes)."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
@@ -94,7 +94,7 @@ class FeedbackOption(Base, UUIDPrimaryKeyMixin):
     value: Mapped[str] = mapped_column(String(255), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     question: Mapped["FeedbackQuestion"] = relationship("FeedbackQuestion", back_populates="options")
@@ -112,10 +112,10 @@ class FeedbackResponse(Base, UUIDPrimaryKeyMixin):
     ip_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # Privacy-preserving SHA-256 hash
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     form: Mapped["FeedbackForm"] = relationship("FeedbackForm", back_populates="responses")
@@ -137,7 +137,7 @@ class ResponseAnswer(Base, UUIDPrimaryKeyMixin):
     text_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     selected_options: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     response: Mapped["FeedbackResponse"] = relationship("FeedbackResponse", back_populates="answers")

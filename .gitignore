@@ -18,6 +18,8 @@ dist/
 build/
 out/
 .next/
+*.egg-info/
+*.egg
 
 # Environment files
 .env

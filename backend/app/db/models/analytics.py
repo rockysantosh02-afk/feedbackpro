@@ -1,6 +1,6 @@
 """AI Analytics, Generations, and Prioritized Recommendations Models."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
@@ -24,7 +24,7 @@ class AIGeneration(Base, UUIDPrimaryKeyMixin):
     execution_time_ms: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     raw_output: Mapped[dict | list | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
 

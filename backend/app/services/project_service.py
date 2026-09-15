@@ -62,7 +62,13 @@ class ProjectService:
             .where(Project.id == project.id)
             .options(selectinload(Project.links))
         )
-        return await db.scalar(stmt)
+        created_project = await db.scalar(stmt)
+        if not created_project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Project not found after creation.",
+            )
+        return created_project
 
     @classmethod
     async def list_projects(cls, db: AsyncSession, user_id: uuid.UUID) -> list[Project]:

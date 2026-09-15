@@ -10,7 +10,7 @@ from fastapi import HTTPException, status
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -175,7 +175,7 @@ class ReportService:
             spaceBefore=16,
         )
 
-        elements = []
+        elements: list[Flowable] = []
 
         elements.append(Paragraph(f"FeedbackPro Audit Report: {report.project_name}", title_style))
         elements.append(Paragraph(f"Event: {report.event_name} | Generated: {report.generated_at.strftime('%Y-%m-%d %H:%M UTC')}", sub_style))

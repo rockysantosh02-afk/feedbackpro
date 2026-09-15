@@ -51,7 +51,7 @@ class AuthService:
     async def login_user(cls, db: AsyncSession, data: UserLoginRequest) -> TokenResponse:
         clean_email = data.email.lower().strip()
         user = await db.scalar(select(User).where(User.email == clean_email))
-        if not user or not verify_password(data.password, user.password_hash):
+        if not user or not user.password_hash or not verify_password(data.password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password.",

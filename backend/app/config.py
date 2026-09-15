@@ -15,6 +15,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def enforce_production_rules(self) -> "Settings":
+        if not self.DATABASE_URL or not self.DATABASE_URL.strip():
+            self.DATABASE_URL = f"sqlite+aiosqlite:///{_DEFAULT_SQLITE_PATH}"
         if self.ENVIRONMENT == "production":
             self.INLINE_AUDIT_EXECUTION = False
         return self

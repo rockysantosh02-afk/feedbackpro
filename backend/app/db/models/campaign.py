@@ -1,6 +1,6 @@
 """Campaigns, Invitations, and Immutable Audit Logs."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
@@ -41,7 +41,7 @@ class CampaignRecipient(Base, UUIDPrimaryKeyMixin):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     campaign: Mapped["Campaign"] = relationship("Campaign", back_populates="recipients")
@@ -63,5 +63,5 @@ class AuditLog(Base, UUIDPrimaryKeyMixin):
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )

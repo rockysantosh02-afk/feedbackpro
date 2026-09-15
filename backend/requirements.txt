@@ -16,3 +16,5 @@ qrcode[pil]>=7.4.2
 python-multipart>=0.0.9
 slowapi>=0.1.9
 firebase-admin>=6.4.0
+types-qrcode>=8.2.0
+types-reportlab>=5.0.0

@@ -44,6 +44,7 @@ KNOWN_TEST_ALLOWLIST = {
     "sk-proj-super-secret-1234",
     "development_secret_key_for_local_testing_only_32_bytes",
     "test_jwt_secret_for_unit_tests_only_32_characters",
+    "AIzaSyDvSoaTFipFUAEP0ayRT2BTYUM8PgcHfbQ",  # Public Firebase Web Client API key
 }
 
 

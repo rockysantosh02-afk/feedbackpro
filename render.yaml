@@ -75,7 +75,7 @@ services:
       - key: VITE_API_URL
         value: https://feedbackpro-api.onrender.com/api
       - key: VITE_FIREBASE_API_KEY
-        sync: false
+        value: AIzaSyDvSoaTFipFUAEP0ayRT2BTYUM8PgcHfbQ
       - key: VITE_FIREBASE_AUTH_DOMAIN
         value: feedbackpro-d2e02.firebaseapp.com
       - key: VITE_FIREBASE_PROJECT_ID
@@ -85,7 +85,7 @@ services:
       - key: VITE_FIREBASE_MESSAGING_SENDER_ID
         value: "173752906033"
       - key: VITE_FIREBASE_APP_ID
-        sync: false
+        value: "1:173752906033:web:7362c5212afe941f8dc010"
       - key: VITE_FIREBASE_MEASUREMENT_ID
         value: G-RCBSH3WWEB
 
